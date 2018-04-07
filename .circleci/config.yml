@@ -9,7 +9,7 @@ jobs:
     steps:
       - checkout
 
-      - run: make zip
+      - run: make tools && make zip
 
       - store_artifacts:
           path: artifacts/zips
