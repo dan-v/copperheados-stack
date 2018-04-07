@@ -44,7 +44,7 @@ You'll need AWS CLI credentials setup with 'AdministratorAccess': https://docs.a
 ## FAQ
 1. <b>Should I use copperheados-stack?</b> That's up to you. Use at your own risk.
 
-# Powered by
+## Powered by
 * [Terraform](https://www.terraform.io/) 
 
 ## Build From Source

@@ -132,7 +132,7 @@ version:
 	@go version
 
 zip: all
-    mkdir -p artifacts/zips
+	mkdir -p artifacts/zips
 	zip -r artifacts/zips/copperheados-stack-osx-${VERSION}.zip artifacts/$(VERSION)/darwin/$(TARGET)
 	zip -r artifacts/zips/copperheados-stack-windows-${VERSION}.zip artifacts/$(VERSION)/windows/$(TARGET).exe
 	zip -r artifacts/zips/copperheados-stack-linux-${VERSION}.zip artifacts/$(VERSION)/linux/$(TARGET)
