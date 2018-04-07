@@ -1,0 +1,15 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: circleci/golang:1.10
+
+    working_directory: /go/src/github.com/dan-v/copperheados-stack
+
+    steps:
+      - checkout
+
+      - run: make zip
+
+      - store_artifacts:
+          path: artifacts/zips
