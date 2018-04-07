@@ -10,7 +10,7 @@ import (
 
 var version string
 var name, region, device, ami, sshKey, spotPrice string
-var remove bool
+var remove, preventShutdown bool
 
 var RootCmd = &cobra.Command{
 	Use:   "copperheados-stack",
@@ -56,6 +56,7 @@ func init() {
 	RootCmd.Flags().StringVar(&spotPrice, "spot-price", ".80", "spot price for build ec2 instances. if this value is too low you may not obtain an instance or it may terminate during a build.")
 	RootCmd.Flags().StringVar(&ami, "ami", "", "ami id to use for build environment. this is optional as correct ubuntu ami for region will be chosen by default.")
 	RootCmd.Flags().BoolVar(&remove, "remove", false, "cleanup/destroy all deployed aws resources.")
+	RootCmd.Flags().BoolVar(&preventShutdown, "prevent-shutdown", false, "for debugging purposes only - will prevent ec2 instance from shutting down after build.")
 }
 
 func main() {

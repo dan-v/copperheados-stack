@@ -36,8 +36,8 @@ You'll need AWS CLI credentials setup with 'AdministratorAccess': https://docs.a
     ```
 
 ## First Time Setup After Deployment
-* Go to the AWS Lambda console and execute the function \<stackname>-build to kick off first build (or you could wait for daily cron to kick it off). This build will take a few hours to complete.
-* After build finishes, a factory image should be uploaded to the S3 bucket '\<stackname>-release'. From this bucket, download the file '\<device>-factory-\<build_date>.tar.xz'. 
+* Initial build should automatically kick off (it will take a few hours).
+* After build finishes, a factory image should be uploaded to the S3 bucket '\<stackname>-release'. From this bucket, download the file '\<device>-factory-latest.tar.xz'. 
 * Use this factory image and follow the instructions on flashing your device: https://copperhead.co/android/docs/install
 * After successful flash, your device will now have CopperheadOS on it and be able to perform OTA updates going forward.
 
@@ -50,7 +50,7 @@ You'll need AWS CLI credentials setup with 'AdministratorAccess': https://docs.a
 ## Build From Source
 
   ```sh
-  make
+  make tools && make
   ```
 
 ## To Do

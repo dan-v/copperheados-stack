@@ -20,6 +20,7 @@ type TerraformConfig struct {
 	ShellScriptBytes        []byte
 	LambdaSpotZipFile       string
 	LambdaSpotFunctionBytes []byte
+	PreventShutdown         bool
 }
 
 func generateTerraformConfig(config StackConfig) (*TerraformConfig, error) {
@@ -47,6 +48,7 @@ func generateTerraformConfig(config StackConfig) (*TerraformConfig, error) {
 		ShellScriptBytes:        renderedCopperheadShellScript,
 		LambdaSpotZipFile:       tempDir.Path(LambdaSpotZipFilename),
 		LambdaSpotFunctionBytes: renderedLambdaSpotFunction,
+		PreventShutdown:         config.PreventShutdown,
 	}
 
 	return &conf, nil
