@@ -1,14 +1,18 @@
-<b>copperheados-stack</b> is an tool that will deploy all the infrastructure required to run your own [CopperheadOS](https://copperhead.co/android/) build and release environment in AWS. It uses AWS Lambda to check for new releases, provisions spot instances for OS builds, and uploads build artifacts to S3. Resulting OS builds are configured to receive OTA updates from this environment.
+## What is CopperheadOS
+CopperheadOS is a Linux-based mobile operating system with a focus on privacy and security. It builds on the latest stable release of the Android Open Source Project which is Android without any Google apps and services.
+
+## What is copperheados-stack
+<b>copperheados-stack</b> is an tool that will deploy all the AWS infrastructure required to run your own [CopperheadOS](https://copperhead.co/android/) build and release environment. It uses AWS Lambda to check for new releases, provisions EC2 spot instances for OS builds on demand, and uploads build artifacts to S3. Resulting OS builds are configured to receive Android OTA updates from this environment.
 
 ## Features
-* Support for Google Pixel and Pixel XL (additional supported devices can be added)
+* Support for Google Pixel, Pixel XL, Pixel 2, and Pixel 2 XL
 * End to end setup of build environment for CopperheadOS in AWS
-* Scheduled Lambda function looks for updated builds on a daily basis
 * OTA updates through built in updater app - no need to manually flash your device on each new release
+* Scheduled Lambda function looks for new releases to build on a daily basis
 * Costs just a few dollars a month to run (EC2 spot instance and S3 storage costs)
 
 ## Supporting CopperheadOS
-If you use CopperheadOS, I <b>HIGHLY</b> recommend supporting the project with donations: https://copperhead.co/android/donate. 
+If you use this tool, I <b>HIGHLY</b> recommend supporting the project with donations: https://copperhead.co/android/donate. 
 
 ## Installation
 The easiest way is to download a pre-built binary from the [GitHub Releases](https://github.com/dan-v/copperheados-stack/releases) page.
@@ -29,6 +33,18 @@ You'll need AWS CLI credentials setup with 'AdministratorAccess': https://docs.a
     ./copperheados-stack --region us-west-2 --name copperheados-dan --device sailfish
     ```
 
+* Deploy environment for Pixel 2 XL in AWS (taimen)
+
+    ```sh
+    ./copperheados-stack --region us-west-2 --name copperheados-dan --device taimen
+    ```
+
+* Deploy environment for Pixel 2 in AWS (walleye)
+
+    ```sh
+    ./copperheados-stack --region us-west-2 --name copperheados-dan --device walleye
+    ```
+
 * Remove environment and all AWS resources
 
     ```sh
@@ -39,7 +55,7 @@ You'll need AWS CLI credentials setup with 'AdministratorAccess': https://docs.a
 * Initial build should automatically kick off (it will take a few hours).
 * After build finishes, a factory image should be uploaded to the S3 bucket '\<stackname>-release'. From this bucket, download the file '\<device>-factory-latest.tar.xz'. 
 * Use this factory image and follow the instructions on flashing your device: https://copperhead.co/android/docs/install
-* After successful flash, your device will now have CopperheadOS on it and be able to perform OTA updates going forward.
+* After successfully flashing your device, you will now be running CopperheadOS and all future updates will happen through built in OTA mechanism.
 
 ## FAQ
 1. <b>Should I use copperheados-stack?</b> That's up to you. Use at your own risk.

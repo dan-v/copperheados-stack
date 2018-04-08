@@ -72,12 +72,6 @@
 
 [[projects]]
   branch = "master"
-  name = "gitlab.com/dan-v/unofficial-copperheados"
-  packages = ["templates"]
-  revision = "a149257a970fa29cd32ebedec58460e5096cc779"
-
-[[projects]]
-  branch = "master"
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
   revision = "b2aa35443fbc700ab74c586ae79b81c171851023"
@@ -94,6 +88,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "6c162fbcab2f87b8654ed6c14c1434a1667b4f04f628b4382b2cf4fd115c7705"
+  inputs-digest = "86b92124db24022653ff42d9c837bcdd4b23217d96d5bb1d55aa0cd06cd4fd33"
   solver-name = "gps-cdcl"
   solver-version = 1

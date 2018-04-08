@@ -155,17 +155,23 @@ patch_priv_ext() {
   official_sailfish_platform_hash='1C3FBC736E9B7B09E309B8379FF954BF5BD9F95ED399741D7D1D3A42F8ADB757'
   official_marlin_releasekey_hash='6425C9DE6219056CCE62F73E7AD9F92C940B83BAC1D5516ABEBCE1D38F85E4CF'
   official_marlin_platform_hash='CC1E06EAD3E9CA2C4E46073172E92BAD4AFB02D4D21EDDC3F4D9A50C2FBD639D'
+  official_taimen_releasekey_hash='12AB56E8D6411DC215448EAC69DFC21AB28164B79DBD3EADD1C70D6A70CD862A'
+  official_walleye_releasekey_hash='7CF1C0DD717C52C6EB2B6430E140A586AC5E7652BF0F0D40F428302D735E4CC2'
 
   unofficial_sailfish_releasekey_hash=$(fdpe_hash "${CHOS_DIR}/keys/sailfish/releasekey.x509.pem")
   unofficial_sailfish_platform_hash=$(fdpe_hash "${CHOS_DIR}/keys/sailfish/platform.x509.pem")
   unofficial_marlin_releasekey_hash=$(fdpe_hash "${CHOS_DIR}/keys/marlin/releasekey.x509.pem")
   unofficial_marlin_platform_hash=$(fdpe_hash "${CHOS_DIR}/keys/marlin/platform.x509.pem")
+  unofficial_taimen_releasekey_hash=$(fdpe_hash "${CHOS_DIR}/keys/taimen/releasekey.x509.pem")
+  unofficial_walleye_releasekey_hash=$(fdpe_hash "${CHOS_DIR}/keys/walleye/releasekey.x509.pem")
 
   sed --in-place \
     --expression "s/${official_marlin_releasekey_hash}/${unofficial_marlin_releasekey_hash}/g" \
     --expression "s/${official_marlin_platform_hash}/${unofficial_marlin_platform_hash}/g" \
     --expression "s/${official_sailfish_releasekey_hash}/${unofficial_sailfish_releasekey_hash}/g" \
     --expression "s/${official_sailfish_platform_hash}/${unofficial_sailfish_platform_hash}/g" \
+    --expression "s/${official_taimen_releasekey_hash}/${unofficial_taimen_releasekey_hash}/g" \
+    --expression "s/${official_walleye_releasekey_hash}/${unofficial_walleye_releasekey_hash}/g" \
     "${CHOS_DIR}/packages/apps/F-Droid/privileged-extension/app/src/main/java/org/fdroid/fdroid/privileged/ClientWhitelist.java"
 }
 
@@ -295,7 +301,20 @@ gen_keys() {
     ! "${CHOS_DIR}/development/tools/make_key" "$key" "$CERTIFICATE_SUBJECT"
   done
 
-  gen_verity_key "${DEVICE}"
+  if [ "${DEVICE}" == "marlin" ] || [ "${DEVICE}" == "sailfish" ]; then
+    gen_verity_key "${DEVICE}"
+  fi
+
+  if [ "${DEVICE}" == "walleye" ] || [ "${DEVICE}" == "taimen" ]; then
+    gen_avb_key "${DEVICE}"
+  fi
+}
+
+gen_avb_key() {
+  pushd "$CHOS_DIR"
+
+  openssl genrsa -out "${CHOS_DIR}/keys/$1/avb.pem" 2048
+  ${CHOS_DIR}/external/avb/avbtool extract_public_key --key "${CHOS_DIR}/keys/$1/avb.pem" --output "${CHOS_DIR}/keys/$1/avb_pkmd.bin"
 }
 
 gen_verity_key() {

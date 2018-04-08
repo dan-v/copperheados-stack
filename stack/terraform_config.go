@@ -1,8 +1,8 @@
 package stack
 
 import (
+	"github.com/dan-v/copperheados-stack/templates"
 	log "github.com/sirupsen/logrus"
-	"gitlab.com/dan-v/unofficial-copperheados/templates"
 )
 
 const (
