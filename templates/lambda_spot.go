@@ -60,7 +60,7 @@ def lambda_handler(event, context):
         """.format(SRC_PATH, device).encode('ascii')).decode('ascii')
 
         now_utc = datetime.utcnow().replace(microsecond=0)
-        valid_until = now_utc + timedelta(hours=6)
+        valid_until = now_utc + timedelta(hours=12)
         response = client.request_spot_fleet(
             SpotFleetRequestConfig={
                 'IamFleetRole': FLEET_ROLE.format(account_id),
@@ -84,7 +84,7 @@ def lambda_handler(event, context):
                                 'DeviceName' : '/dev/sda1',
                                 'Ebs': {
                                     'DeleteOnTermination': True,
-                                    'VolumeSize': 200,
+                                    'VolumeSize': 250,
                                     'VolumeType': 'gp2'
                                 },
                             },
@@ -104,7 +104,7 @@ def lambda_handler(event, context):
                                 'DeviceName' : '/dev/sda1',
                                 'Ebs': {
                                     'DeleteOnTermination': True,
-                                    'VolumeSize': 200,
+                                    'VolumeSize': 250,
                                     'VolumeType': 'gp2'
                                 },
                             },

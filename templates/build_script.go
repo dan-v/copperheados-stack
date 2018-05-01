@@ -36,6 +36,8 @@ OFFICIAL_VERSION="${metadata[2]}"
 TAG="${OFFICIAL_VERSION}.${OFFICIAL_DATE}"
 BRANCH="refs/tags/${TAG}"
 
+CHROMIUM_REVISION='66.0.3359.106'
+
 # make getopts ignore $1 since it is $DEVICE
 OPTIND=2
 FULL_RUN=false
@@ -55,6 +57,7 @@ done
 
 full_run() {
   setup_env
+  build_chrome
   fetch_chos
   setup_vendor
   aws_import_keys
@@ -76,6 +79,8 @@ fetch_chos() {
   pushd "${CHOS_DIR}"
   repo init --manifest-url 'https://github.com/CopperheadOS/platform_manifest.git' --manifest-branch "${BRANCH}"
   verify_manifest
+  pushd "${CHOS_DIR}"
+  sed -i '/platform_external_chromium/d' .repo/manifest.xml || true
   for i in {1..10}; do
     repo sync --jobs 32 && break
   done
@@ -86,6 +91,67 @@ patch_chos() {
   patch_manifest
   patch_updater
   patch_priv_ext
+}
+
+build_chrome() {
+  pushd "$CHOS_DIR" 
+  git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git $HOME/depot_tools
+  export PATH="$PATH:$HOME/depot_tools"
+  mkdir -p $HOME/chromium
+  cd $HOME/chromium
+  fetch --nohooks android --target_os_only=true
+  echo -e "y\n" | gclient sync --with_branch_heads -r $CHROMIUM_REVISION --jobs 32
+  git clone https://github.com/CopperheadOS/chromium_patches.git
+  cd src
+  git am ../chromium_patches/*.patch
+  mkdir -p out/Default
+  cat <<EOF > out/Default/args.gn
+target_os = "android"
+target_cpu = "arm64"
+is_debug = false
+
+is_official_build = true
+is_component_build = false
+symbol_level = 0
+
+ffmpeg_branding = "Chrome"
+proprietary_codecs = true
+
+android_channel = "stable"
+android_default_version_name = "$CHROMIUM_REVISION"
+android_default_version_code = "335910652"
+EOF
+
+  build/linux/sysroot_scripts/install-sysroot.py --arch=i386
+  build/linux/sysroot_scripts/install-sysroot.py --arch=amd64
+  gn gen out/Default
+  ninja -C out/Default/ monochrome_public_apk
+  mkdir -p ${CHOS_DIR}/external/chromium/prebuilt/arm64/
+  
+  cat <<EOF > ${CHOS_DIR}/external/chromium/Android.mk
+LOCAL_PATH := \$(call my-dir)
+
+include \$(CLEAR_VARS)
+
+LOCAL_MODULE := chromium
+LOCAL_MODULE_CLASS := APPS
+LOCAL_MULTILIB := both
+LOCAL_CERTIFICATE := \$(DEFAULT_SYSTEM_DEV_CERTIFICATE)
+LOCAL_REQUIRED_MODULES := libwebviewchromium_loader libwebviewchromium_plat_support
+
+LOCAL_MODULE_TARGET_ARCH := arm64
+my_src_arch := \$(call get-prebuilt-src-arch,\$(LOCAL_MODULE_TARGET_ARCH))
+LOCAL_SRC_FILES := prebuilt/\$(my_src_arch)/MonochromePublic.apk
+
+include \$(BUILD_PREBUILT)
+EOF
+
+  cp out/Default/apks/MonochromePublic.apk ${CHOS_DIR}/external/chromium/prebuilt/arm64/
+  aws s3 cp "${CHOS_DIR}/external/chromium/prebuilt/arm64/MonochromePublic.apk" "s3://${AWS_RELEASE_BUCKET}/chromium/MonochromePublic.apk" --acl public-read
+  echo "${CHROMIUM_REVISION}" | aws s3 cp - "s3://${AWS_RELEASE_BUCKET}/chromium/revision" --acl public-read
+
+  rm -rf $HOME/chromium
+  popd
 }
 
 build_chos() {
@@ -103,7 +169,7 @@ ubuntu_setup_packages() {
   sudo apt-get update
   sudo apt-get --assume-yes install openjdk-8-jdk git-core gnupg flex bison build-essential zip curl zlib1g-dev gcc-multilib g++-multilib libc6-dev-i386 lib32ncurses5-dev x11proto-core-dev libx11-dev lib32z-dev ccache libgl1-mesa-dev libxml2-utils xsltproc unzip python-networkx liblz4-tool
   sudo apt-get --assume-yes build-dep "linux-image-$(uname --kernel-release)"
-  sudo apt-get --assume-yes install repo
+  sudo apt-get --assume-yes install repo gperf
 }
 
 setup_git() {
@@ -243,13 +309,17 @@ aws_release() {
   build_date="$(< build_number.txt)"
   build_timestamp="$(unzip -p "release-${DEVICE}-${build_date}/${DEVICE}-ota_update-${build_date}.zip" META-INF/com/android/metadata | grep 'post-timestamp' | cut --delimiter "=" --fields 2)"
 
-  aws s3 cp "${CHOS_DIR}/out/release-${DEVICE}-${build_date}/${DEVICE}-ota_update-${build_date}.zip" "s3://${AWS_RELEASE_BUCKET}" --acl public-read
+  read -r old_metadata <<< "$(wget -O - "${UNOFFICIAL_RELEASE_URL}/${DEVICE}-stable")"
+  old_date="$(cut -d ' ' -f 1 <<< "${old_metadata}")"
+  (
+  aws s3 cp "${CHOS_DIR}/out/release-${DEVICE}-${build_date}/${DEVICE}-ota_update-${build_date}.zip" "s3://${AWS_RELEASE_BUCKET}" --acl public-read &&
+  echo "${build_date} ${build_timestamp} ${OFFICIAL_VERSION}" | aws s3 cp - "s3://${AWS_RELEASE_BUCKET}/${RELEASE_CHANNEL}" --acl public-read &&
+  echo "${OFFICIAL_TIMESTAMP}" | aws s3 cp - "s3://${AWS_RELEASE_BUCKET}/${RELEASE_CHANNEL}-true-timestamp" --acl public-read
+  ) && ( aws s3 rm "s3://${AWS_RELEASE_BUCKET}/${DEVICE}-ota_update-${old_date}.zip" || true )
+
   if [ "$(aws s3 ls "s3://${AWS_RELEASE_BUCKET}/${DEVICE}-factory-latest.tar.xz" | wc -l)" == '0' ]; then
     aws s3 cp "${CHOS_DIR}/out/release-${DEVICE}-${build_date}/${DEVICE}-factory-${build_date}.tar.xz" "s3://${AWS_RELEASE_BUCKET}/${DEVICE}-factory-latest.tar.xz" --acl public-read
   fi
-
-  echo "${build_date} ${build_timestamp} ${OFFICIAL_VERSION}" | aws s3 cp - "s3://${AWS_RELEASE_BUCKET}/${RELEASE_CHANNEL}" --acl public-read
-  echo "${OFFICIAL_TIMESTAMP}" | aws s3 cp - "s3://${AWS_RELEASE_BUCKET}/${RELEASE_CHANNEL}-true-timestamp" --acl public-read
 
   if [ "$(aws s3 ls "s3://${AWS_RELEASE_BUCKET}/${DEVICE}-target" | wc -l)" != '0' ]; then
     aws_gen_deltas
@@ -272,7 +342,7 @@ aws_gen_deltas() {
     popd
   done
   for incremental in ${CHOS_DIR}/out/release-${DEVICE}-${current_date}/${DEVICE}-incremental-*-*.zip ; do
-    aws s3 cp "$incremental" "s3://${AWS_RELEASE_BUCKET}/" --acl public-read
+    ( aws s3 cp "$incremental" "s3://${AWS_RELEASE_BUCKET}/" --acl public-read && aws s3 rm "s3://${AWS_RELEASE_BUCKET}/${DEVICE}-target/${DEVICE}-target-files-${old_date}.zip") || true
   done
 }
 
@@ -328,14 +398,20 @@ gen_verity_key() {
   ln --verbose --symbolic "${CHOS_DIR}/keys/$1/verity_user.der.x509" "${CHOS_DIR}/kernel/google/marlin/verity_user.der.x509"
 }
 
-set -e
-
-if [ "$FULL_RUN" = true ]; then
-  full_run
+cleanup() {
+  aws_logging
   if ${PREVENT_SHUTDOWN}; then
     echo "Skipping shutdown"
   else
     sudo shutdown -h now
   fi
+}
+
+trap cleanup 0
+
+set -e
+
+if [ "$FULL_RUN" = true ]; then
+  full_run
 fi
 `
