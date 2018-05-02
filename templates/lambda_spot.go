@@ -84,7 +84,7 @@ def lambda_handler(event, context):
                                 'DeviceName' : '/dev/sda1',
                                 'Ebs': {
                                     'DeleteOnTermination': True,
-                                    'VolumeSize': 250,
+                                    'VolumeSize': 200,
                                     'VolumeType': 'gp2'
                                 },
                             },
@@ -104,7 +104,7 @@ def lambda_handler(event, context):
                                 'DeviceName' : '/dev/sda1',
                                 'Ebs': {
                                     'DeleteOnTermination': True,
-                                    'VolumeSize': 250,
+                                    'VolumeSize': 200,
                                     'VolumeType': 'gp2'
                                 },
                             },
