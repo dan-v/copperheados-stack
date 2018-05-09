@@ -36,7 +36,7 @@ OFFICIAL_VERSION="${metadata[2]}"
 TAG="${OFFICIAL_VERSION}.${OFFICIAL_DATE}"
 BRANCH="refs/tags/${TAG}"
 
-CHROMIUM_REVISION='66.0.3359.106'
+CHROMIUM_FIRST_BUILD="66.0.3359.126"
 
 # make getopts ignore $1 since it is $DEVICE
 OPTIND=2
@@ -57,7 +57,7 @@ done
 
 full_run() {
   setup_env
-  build_chrome
+  check_chrome
   fetch_chos
   setup_vendor
   aws_import_keys
@@ -93,7 +93,58 @@ patch_chos() {
   patch_priv_ext
 }
 
+check_chrome() {
+  chrome_external_setup
+  current=$(aws s3 cp "s3://${AWS_RELEASE_BUCKET}/chromium/revision" - || true)
+  latest=$(curl -s 'https://omahaproxy.appspot.com/all.json' | jq -r '.[] | select(.os == "android") | .versions[] | select(.channel == "stable") | .current_version' || true)
+
+  echo "Chromium current: $current"
+  echo "Chromium latest: $latest"
+
+  if [[ -z "$current" ]]; then
+    echo "No chromium build exists yet in s3 - building chromium ${latest:-$CHROMIUM_FIRST_BUILD}"
+    build_chrome ${latest:-$CHROMIUM_FIRST_BUILD}
+  elif [[ -z "$latest" ]]; then
+    echo "Unable to find latest chromium stable version - just copying s3 chromium artifact"
+    copy_chrome
+  elif [ "$latest" == "$current" ]; then
+    echo "Chromium latest ($latest) matches current ($current) - just copying s3 chromium artifact"
+    copy_chrome
+  else
+    echo "Building chromium $latest"
+    build_chrome $latest
+  fi
+}
+
+chrome_external_setup() {
+  mkdir -p ${CHOS_DIR}/external/chromium/prebuilt/arm64/
+
+  cat <<EOF > ${CHOS_DIR}/external/chromium/Android.mk
+LOCAL_PATH := \$(call my-dir)
+
+include \$(CLEAR_VARS)
+
+LOCAL_MODULE := chromium
+LOCAL_MODULE_CLASS := APPS
+LOCAL_MULTILIB := both
+LOCAL_CERTIFICATE := \$(DEFAULT_SYSTEM_DEV_CERTIFICATE)
+LOCAL_REQUIRED_MODULES := libwebviewchromium_loader libwebviewchromium_plat_support
+
+LOCAL_MODULE_TARGET_ARCH := arm64
+my_src_arch := \$(call get-prebuilt-src-arch,\$(LOCAL_MODULE_TARGET_ARCH))
+LOCAL_SRC_FILES := prebuilt/\$(my_src_arch)/MonochromePublic.apk
+
+include \$(BUILD_PREBUILT)
+EOF
+
+}
+
+copy_chrome() {
+  aws s3 cp "s3://${AWS_RELEASE_BUCKET}/chromium/MonochromePublic.apk" ${CHOS_DIR}/external/chromium/prebuilt/arm64/
+}
+
 build_chrome() {
+  CHROMIUM_REVISION=$1
   pushd "$CHOS_DIR" 
   git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git $HOME/depot_tools
   export PATH="$PATH:$HOME/depot_tools"
@@ -126,32 +177,12 @@ EOF
   build/linux/sysroot_scripts/install-sysroot.py --arch=amd64
   gn gen out/Default
   ninja -C out/Default/ monochrome_public_apk
-  mkdir -p ${CHOS_DIR}/external/chromium/prebuilt/arm64/
-  
-  cat <<EOF > ${CHOS_DIR}/external/chromium/Android.mk
-LOCAL_PATH := \$(call my-dir)
-
-include \$(CLEAR_VARS)
-
-LOCAL_MODULE := chromium
-LOCAL_MODULE_CLASS := APPS
-LOCAL_MULTILIB := both
-LOCAL_CERTIFICATE := \$(DEFAULT_SYSTEM_DEV_CERTIFICATE)
-LOCAL_REQUIRED_MODULES := libwebviewchromium_loader libwebviewchromium_plat_support
-
-LOCAL_MODULE_TARGET_ARCH := arm64
-my_src_arch := \$(call get-prebuilt-src-arch,\$(LOCAL_MODULE_TARGET_ARCH))
-LOCAL_SRC_FILES := prebuilt/\$(my_src_arch)/MonochromePublic.apk
-
-include \$(BUILD_PREBUILT)
-EOF
 
   cp out/Default/apks/MonochromePublic.apk ${CHOS_DIR}/external/chromium/prebuilt/arm64/
   aws s3 cp "${CHOS_DIR}/external/chromium/prebuilt/arm64/MonochromePublic.apk" "s3://${AWS_RELEASE_BUCKET}/chromium/MonochromePublic.apk" --acl public-read
   echo "${CHROMIUM_REVISION}" | aws s3 cp - "s3://${AWS_RELEASE_BUCKET}/chromium/revision" --acl public-read
 
   rm -rf $HOME/chromium
-  popd
 }
 
 build_chos() {
@@ -169,7 +200,7 @@ ubuntu_setup_packages() {
   sudo apt-get update
   sudo apt-get --assume-yes install openjdk-8-jdk git-core gnupg flex bison build-essential zip curl zlib1g-dev gcc-multilib g++-multilib libc6-dev-i386 lib32ncurses5-dev x11proto-core-dev libx11-dev lib32z-dev ccache libgl1-mesa-dev libxml2-utils xsltproc unzip python-networkx liblz4-tool
   sudo apt-get --assume-yes build-dep "linux-image-$(uname --kernel-release)"
-  sudo apt-get --assume-yes install repo gperf
+  sudo apt-get --assume-yes install repo gperf jq
 }
 
 setup_git() {
