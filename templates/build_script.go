@@ -18,7 +18,7 @@ PREVENT_SHUTDOWN=<% .PreventShutdown %>
 AWS_KEYS_BUCKET='<% .Name %>-keys'
 AWS_RELEASE_BUCKET='<% .Name %>-release'
 AWS_LOGS_BUCKET='<% .Name %>-logs'
-AWS_SNS_ARN='$(aws --region <% .Region %> sns list-topics --query 'Topics[0].TopicArn' --output text | cut -d":" -f1,2,3,4,5):<% .Name %>'
+AWS_SNS_ARN=$(aws --region <% .Region %> sns list-topics --query 'Topics[0].TopicArn' --output text | cut -d":" -f1,2,3,4,5)':<% .Name %>'
 
 # targets
 BUILD_TARGET="release aosp_${DEVICE} user"
@@ -378,8 +378,7 @@ aws_gen_deltas() {
 }
 
 aws_notify() {
-  read -r unofficial_true_timestamp <<< "$(wget -O - "${UNOFFICIAL_RELEASE_URL}/${RELEASE_CHANNEL}-true-timestamp")"
-  ((unofficial_true_timestamp >= OFFICIAL_TIMESTAMP)) || aws sns publish --region <% .Region %> --topic-arn "$AWS_SNS_ARN" --message "0"
+  aws sns publish --region <% .Region %> --topic-arn "$AWS_SNS_ARN" --message "CopperheadOS Build SUCCESS ($OFFICIAL_DATE)" || true
 }
 
 aws_logging() {
@@ -431,6 +430,7 @@ gen_verity_key() {
 
 cleanup() {
   aws_logging
+  aws sns publish --region <% .Region %> --topic-arn "$AWS_SNS_ARN" --message "CopperheadOS Build FAILED: $(tail -100 /var/log/cloud-init-output.log)"
   if ${PREVENT_SHUTDOWN}; then
     echo "Skipping shutdown"
   else
