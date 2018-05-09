@@ -36,8 +36,6 @@ OFFICIAL_VERSION="${metadata[2]}"
 TAG="${OFFICIAL_VERSION}.${OFFICIAL_DATE}"
 BRANCH="refs/tags/${TAG}"
 
-CHROMIUM_FIRST_BUILD="66.0.3359.126"
-
 # make getopts ignore $1 since it is $DEVICE
 OPTIND=2
 FULL_RUN=false
@@ -96,18 +94,19 @@ patch_chos() {
 check_chrome() {
   chrome_external_setup
   current=$(aws s3 cp "s3://${AWS_RELEASE_BUCKET}/chromium/revision" - || true)
-  latest=$(curl -s 'https://omahaproxy.appspot.com/all.json' | jq -r '.[] | select(.os == "android") | .versions[] | select(.channel == "stable") | .current_version' || true)
-
   echo "Chromium current: $current"
+
+  mkdir -p $HOME/chromium
+  cd $HOME/chromium
+  git clone https://github.com/CopperheadOS/chromium_patches.git
+  cd chromium_patches
+  # TODO: change to tag checkout on next release when args.gn exists
+  #git checkout tags/$TAG
+  git checkout oreo-m2-s2-release
+  latest=$(awk /android_default_version_name/'{print $3}' args.gn | cut -d'"' -f2)
   echo "Chromium latest: $latest"
 
-  if [[ -z "$current" ]]; then
-    echo "No chromium build exists yet in s3 - building chromium ${latest:-$CHROMIUM_FIRST_BUILD}"
-    build_chrome ${latest:-$CHROMIUM_FIRST_BUILD}
-  elif [[ -z "$latest" ]]; then
-    echo "Unable to find latest chromium stable version - just copying s3 chromium artifact"
-    copy_chrome
-  elif [ "$latest" == "$current" ]; then
+  if [ "$latest" == "$current" ]; then
     echo "Chromium latest ($latest) matches current ($current) - just copying s3 chromium artifact"
     copy_chrome
   else
@@ -152,26 +151,10 @@ build_chrome() {
   cd $HOME/chromium
   fetch --nohooks android --target_os_only=true
   echo -e "y\n" | gclient sync --with_branch_heads -r $CHROMIUM_REVISION --jobs 32
-  git clone https://github.com/CopperheadOS/chromium_patches.git
   cd src
   git am ../chromium_patches/*.patch
   mkdir -p out/Default
-  cat <<EOF > out/Default/args.gn
-target_os = "android"
-target_cpu = "arm64"
-is_debug = false
-
-is_official_build = true
-is_component_build = false
-symbol_level = 0
-
-ffmpeg_branding = "Chrome"
-proprietary_codecs = true
-
-android_channel = "stable"
-android_default_version_name = "$CHROMIUM_REVISION"
-android_default_version_code = "335910652"
-EOF
+  cp ../chromium_patches/args.gn out/Default/args.gn
 
   build/linux/sysroot_scripts/install-sysroot.py --arch=i386
   build/linux/sysroot_scripts/install-sysroot.py --arch=amd64
