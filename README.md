@@ -57,6 +57,9 @@ You'll need AWS CLI credentials setup with 'AdministratorAccess': https://docs.a
 * Use this factory image and follow the instructions on flashing your device: https://copperhead.co/android/docs/install
 * After successfully flashing your device, you will now be running CopperheadOS and all future updates will happen through built in OTA mechanism.
 
+## Updating to a New Version
+* Just download the new version and run the same command used previously (e.g. ./copperheados-stack --region us-west-2 --name copperheados-dan --device marlin) to apply the updates
+
 ## FAQ
 1. <b>Should I use copperheados-stack?</b> That's up to you. Use at your own risk.
 
