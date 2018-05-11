@@ -75,7 +75,7 @@ def lambda_handler(event, context):
                         'ImageId': AMI_ID,
                         'SubnetId': subnets,
                         'InstanceType': 'c5.4xlarge',
-                        'KeyName': SSH_KEY_NAME,
+                        <% if .SSHKey %>'KeyName': SSH_KEY_NAME,<% end %>
                         'IamInstanceProfile': {
                             'Arn': IAM_PROFILE.format(account_id)
                         },
@@ -95,7 +95,7 @@ def lambda_handler(event, context):
                         'ImageId': AMI_ID,
                         'SubnetId': subnets,
                         'InstanceType': 'c4.4xlarge',
-                        'KeyName': SSH_KEY_NAME,
+                        <% if .SSHKey %>'KeyName': SSH_KEY_NAME,<% end %>
                         'IamInstanceProfile': {
                             'Arn': IAM_PROFILE.format(account_id)
                         },
