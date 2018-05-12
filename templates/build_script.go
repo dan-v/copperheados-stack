@@ -315,6 +315,11 @@ ENDDEBUGFSPATCH
     mv "${CHOS_DIR}/vendor/android-prepare-vendor/sailfish/$(tr '[:upper:]' '[:lower:]' <<< "${vendor_version}")/vendor/google_devices/marlin" "${CHOS_DIR}/vendor/google_devices"
   fi
 
+  if [ "$DEVICE" == 'walleye' ]; then
+    rm --recursive --force "${CHOS_DIR}/vendor/google_devices/muskie" || true
+    mv "${CHOS_DIR}/vendor/android-prepare-vendor/walleye/$(tr '[:upper:]' '[:lower:]' <<< "${vendor_version}")/vendor/google_devices/muskie" "${CHOS_DIR}/vendor/google_devices"
+  fi
+
   popd
 }
 
