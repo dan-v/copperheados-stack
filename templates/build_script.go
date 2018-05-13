@@ -54,6 +54,7 @@ while getopts ":hA" opt; do
 done
 
 full_run() {
+  aws_notify "Starting CopperheadOS Build ($OFFICIAL_DATE)"
   setup_env
   check_chrome
   fetch_chos
@@ -62,8 +63,6 @@ full_run() {
   patch_chos
   build_chos
   aws_release
-  aws_notify
-  aws_logging
 }
 
 setup_env() {
@@ -366,7 +365,8 @@ aws_gen_deltas() {
 }
 
 aws_notify() {
-  aws sns publish --region <% .Region %> --topic-arn "$AWS_SNS_ARN" --message "CopperheadOS Build SUCCESS ($OFFICIAL_DATE)" || true
+  message="$1"
+  aws sns publish --region <% .Region %> --topic-arn "$AWS_SNS_ARN" --message "$message" || true
 }
 
 aws_logging() {
@@ -417,8 +417,13 @@ gen_verity_key() {
 }
 
 cleanup() {
+  rv=$?
   aws_logging
-  aws sns publish --region <% .Region %> --topic-arn "$AWS_SNS_ARN" --message "CopperheadOS Build FAILED: $(tail -100 /var/log/cloud-init-output.log)"
+  if [ $rv -ne 0 ]; then
+    aws_notify "CopperheadOS Build FAILED ($OFFICIAL_DATE)"
+  else
+    aws_notify "CopperheadOS Build SUCCESS ($OFFICIAL_DATE)"
+  fi
   if ${PREVENT_SHUTDOWN}; then
     echo "Skipping shutdown"
   else

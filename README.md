@@ -60,6 +60,9 @@ You'll need AWS CLI credentials setup with 'AdministratorAccess': https://docs.a
 ## Updating to a New Version
 * Just download the new version and run the same command used previously (e.g. ./copperheados-stack --region us-west-2 --name copperheados-dan --device marlin) to apply the updates
 
+## Getting Notifications for Builds (start/success/failure)
+* A SNS topic should be created with your stack name already, all you have to do is create a subscription to this using your email for example.
+
 ## FAQ
 1. <b>Should I use copperheados-stack?</b> That's up to you. Use at your own risk.
 
