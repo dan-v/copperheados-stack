@@ -99,9 +99,7 @@ check_chrome() {
   cd $HOME/chromium
   git clone https://github.com/CopperheadOS/chromium_patches.git
   cd chromium_patches
-  # TODO: change to tag checkout on next release when args.gn exists
-  #git checkout tags/$TAG
-  git checkout oreo-m2-s2-release
+  git checkout tags/$TAG
   latest=$(awk /android_default_version_name/'{print $3}' args.gn | cut -d'"' -f2)
   echo "Chromium latest: $latest"
 
@@ -296,6 +294,8 @@ index 41c9713..74f3995 100755
  # Check that system tools exist
 ENDDEBUGFSPATCH
   fi
+
+  sed -i "s@url=.*@url=\$\(curl -L --silent \\'https:\/\/developers.google.com\/android\/images\\'\ | \\\@g" "${CHOS_DIR}/vendor/android-prepare-vendor/scripts/download-nexus-image.sh" || true
 
   {
     ("${CHOS_DIR}/vendor/android-prepare-vendor/execute-all.sh" --device "${DEVICE}" --buildID "${OFFICIAL_VERSION}" --output "${CHOS_DIR}/vendor/android-prepare-vendor") && vendor_version="$OFFICIAL_VERSION"
