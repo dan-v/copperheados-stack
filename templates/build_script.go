@@ -97,7 +97,7 @@ check_chrome() {
 
   mkdir -p $HOME/chromium
   cd $HOME/chromium
-  git clone https://github.com/CopperheadOS/chromium_patches.git
+  git clone https://github.com/CopperheadOS/chromium_patches.git || true
   cd chromium_patches
   git checkout tags/$TAG
   latest=$(awk /android_default_version_name/'{print $3}' args.gn | cut -d'"' -f2)
@@ -217,8 +217,20 @@ fdpe_hash() {
 }
 
 patch_manifest() {
-  pushd "$CHOS_DIR"/device/google/marlin
-  perl -0777 -i.original -pe 's/ifeq \(\$\(OFFICIAL_BUILD\),true\)\n    PRODUCT_PACKAGES \+= Updater\nendif/PRODUCT_PACKAGES \+= Updater/' device-common.mk
+  if [ "$DEVICE" == 'sailfish' ] || [ "$DEVICE" == 'marlin' ]; then
+    pushd "$CHOS_DIR"/device/google/marlin
+    perl -0777 -i.original -pe 's/ifeq \(\$\(OFFICIAL_BUILD\),true\)\n    PRODUCT_PACKAGES \+= Updater\nendif/PRODUCT_PACKAGES \+= Updater/' device-common.mk  
+  fi
+
+  if [ "$DEVICE" == 'walleye' ]; then
+    pushd "$CHOS_DIR"/device/google/muskie
+    sed -i.original "\$aPRODUCT_PACKAGES += Updater" device-common.mk
+  fi
+
+  if [ "$DEVICE" == 'taimen' ]; then
+    pushd "$CHOS_DIR"/device/google/taimen
+    sed -i.original "\$aPRODUCT_PACKAGES += Updater" device.mk
+  fi
 }
 
 patch_updater() {
@@ -294,8 +306,6 @@ index 41c9713..74f3995 100755
  # Check that system tools exist
 ENDDEBUGFSPATCH
   fi
-
-  sed -i "s@url=.*@url=\$\(curl -L --silent \\'https:\/\/developers.google.com\/android\/images\\'\ | \\\@g" "${CHOS_DIR}/vendor/android-prepare-vendor/scripts/download-nexus-image.sh" || true
 
   {
     ("${CHOS_DIR}/vendor/android-prepare-vendor/execute-all.sh" --device "${DEVICE}" --buildID "${OFFICIAL_VERSION}" --output "${CHOS_DIR}/vendor/android-prepare-vendor") && vendor_version="$OFFICIAL_VERSION"

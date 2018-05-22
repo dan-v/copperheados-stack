@@ -26,12 +26,13 @@ var RootCmd = &cobra.Command{
 		if !remove {
 			stack.AWSApply(
 				stack.StackConfig{
-					Name:      name,
-					Region:    region,
-					Device:    device,
-					AMI:       ami,
-					SSHKey:    sshKey,
-					SpotPrice: spotPrice,
+					Name:            name,
+					Region:          region,
+					Device:          device,
+					AMI:             ami,
+					SSHKey:          sshKey,
+					SpotPrice:       spotPrice,
+					PreventShutdown: preventShutdown,
 				},
 			)
 		} else {
