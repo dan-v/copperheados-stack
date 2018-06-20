@@ -1,3 +1,5 @@
+# This repository is no longer maintained. I've migrated to https://github.com/dan-v/rattlesnakeos-stack. 
+
 ## What is CopperheadOS
 CopperheadOS is a Linux-based mobile operating system with a focus on privacy and security. It builds on the latest stable release of the Android Open Source Project which is Android without any Google apps and services.
 
